@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14  # Usa una versión estable de PostgreSQL
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}  # Variables desde .env
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data  # Volumen para persistencia
+    networks:
+      - app-network  # Red compartida
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "8080:80"  # Accede a pgAdmin en http://localhost:8080
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin  # Volumen para configuración de pgAdmin
+    depends_on:
+      - postgres  # Espera a que PostgreSQL inicie
+    networks:
+      - app-network
+
+  app:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+volumes:
+  postgres-data:  # Define el volumen para PostgreSQL
+  pgadmin-data:   # Define el volumen para pgAdmin
+
+networks:
+  app-network:  # Red personalizada para conectividad entre servicios
+    driver: bridge
